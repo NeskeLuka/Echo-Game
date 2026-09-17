@@ -1,75 +1,61 @@
 package player;
 
+import java.awt.Color;
+import java.awt.Graphics;
+
 import maze.Maze;
 
 public class Player {
-	int playerX = 0, playerY = 0;
-	final int playerSize = 20;
-	final int speed = 4;
-	// movement
-	private boolean up, down, left, right;
+	private final Position position = new Position(0, 0);
+	private  Movement movement = new Movement(position);
+	private final int size = 20;
+	private final int speed = 4;
 
-	public void setUp(boolean pressed) {
-		this.up = pressed;
-	}
-
-	public void setDown(boolean pressed) {
-		this.down = pressed;
+	public void setMoving(Direction direction, boolean isMoving) {
+		movement.setActive(direction, isMoving);
 	}
 
-	public void setRight(boolean pressed) {
-		this.right = pressed;
+	public int getX() {
+		return position.getX();
 	}
 
-	public void setLeft(boolean pressed) {
-		this.left = pressed;
+	public int getY() {
+		return position.getY();
 	}
-	
-	public int getPlayerX() {
-		return this.playerX;
-	}
-	
-	public int getPlayerY() {
-		return this.playerY;
-	}
-	
-	public int getPlayerSize() {
-		return this.playerSize;
+
+	public int getSize() {
+		return size;
 	}
 
 	public void update(Maze maze) {
-		int moveX = 0, moveY = 0;
-		if (up)
-			moveY -= speed;
-		if (down)
-			moveY += speed;
-		if (left)
-			moveX -= speed;
-		if (right)
-			moveX += speed;
+		int[] delta = movement.computeDelta(speed);
+		int moveX = delta[0], moveY = delta[1];
 
-		if (moveX != 0 && moveY != 0) {
-			moveX = (int) Math.round(moveX * 0.7071);
-			moveY = (int) Math.round(moveY * 0.7071);
+		int row = position.getY() / Maze.TILE_SIZE;
+		int col = position.getX() / Maze.TILE_SIZE;
+
+		if (moveX != 0 && !isBlockedHorizontally(maze, row, col, moveX)) {
+			position.translateX(moveX);
 		}
-
-		int row = playerY / Maze.TILE_SIZE;
-		int col = playerX / Maze.TILE_SIZE;
-
-		if (moveX != 0) {
-			int leadingEdgeX = moveX > 0 ? playerX + moveX + playerSize - 1 : playerX + moveX;
-			int targetCol = leadingEdgeX / Maze.TILE_SIZE;
-			boolean blocked = targetCol != col && maze.hasWall(row, col, moveX > 0 ? Maze.EAST : Maze.WEST);
-			if (!blocked)
-				playerX += moveX;
+		if (moveY != 0 && !isBlockedVertically(maze, row, col, moveY)) {
+			position.translateY(moveY);
 		}
+	}
 
-		if (moveY != 0) {
-			int leadingEdgeY = moveY > 0 ? playerY + moveY + playerSize - 1 : playerY + moveY;
-			int targetRow = leadingEdgeY / Maze.TILE_SIZE;
-			boolean blocked = targetRow != row && maze.hasWall(row, col, moveY > 0 ? Maze.SOUTH : Maze.NORTH);
-			if (!blocked)
-				playerY += moveY;
-		}
+	private boolean isBlockedHorizontally(Maze maze, int row, int col, int moveX) {
+		int leadingEdgeX = moveX > 0 ? position.getX() + moveX + size - 1 : position.getX() + moveX;
+		int targetCol = leadingEdgeX / Maze.TILE_SIZE;
+		return targetCol != col && maze.hasWall(row, col, moveX > 0 ? Maze.EAST : Maze.WEST);
+	}
+
+	private boolean isBlockedVertically(Maze maze, int row, int col, int moveY) {
+		int leadingEdgeY = moveY > 0 ? position.getY() + moveY + size - 1 : position.getY() + moveY;
+		int targetRow = leadingEdgeY / Maze.TILE_SIZE;
+		return targetRow != row && maze.hasWall(row, col, moveY > 0 ? Maze.SOUTH : Maze.NORTH);
+	}
+
+	public void draw(Graphics g) {
+		g.setColor(Color.CYAN);
+		g.fillOval(position.getX(), position.getY(), size, size);
 	}
 }
