@@ -1,18 +1,19 @@
 package drawGame;
 
 import java.awt.Color;
-import javax.swing.KeyStroke;
-import javax.swing.Timer;
-import javax.swing.AbstractAction;
-
-import java.awt.event.ActionEvent;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+
+import javax.swing.AbstractAction;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
+import javax.swing.Timer;
+
+import maze.Maze;
 
 class Player {
-	private static final int WIDTH = 940, HEIGHT = 700; // dimension of a panel
-	int playerX = 470, playerY = 350;
+	int playerX = 0, playerY = 0;
 	final int playerSize = 20;
 	final int speed = 4;
 	// movement
@@ -34,34 +35,47 @@ class Player {
 		this.left = pressed;
 	}
 
-	public void update() {
-		int moveX = 0;
-	    int moveY = 0;
+	public void update(Maze maze) {
+		int moveX = 0, moveY = 0;
+		if (up)
+			moveY -= speed;
+		if (down)
+			moveY += speed;
+		if (left)
+			moveX -= speed;
+		if (right)
+			moveX += speed;
 
-	    // 1. Determine intended direction
-	    if (up) moveY -= speed;
-	    if (down) moveY += speed;
-	    if (left) moveX -= speed;
-	    if (right) moveX += speed;
+		if (moveX != 0 && moveY != 0) {
+			moveX = (int) Math.round(moveX * 0.7071);
+			moveY = (int) Math.round(moveY * 0.7071);
+		}
 
-	    // 2. Normalize speed if moving diagonally
-	    if (moveX != 0 && moveY != 0) {
-	        moveX = (int) Math.round(moveX * 0.7071);
-	        moveY = (int) Math.round(moveY * 0.7071);
-	    }
+		int row = playerY / Maze.TILE_SIZE;
+		int col = playerX / Maze.TILE_SIZE;
 
-	    if (playerX + moveX >= 0 && playerX + moveX < WIDTH) {
-	        playerX += moveX;
-	    }
-	    if (playerY + moveY >= 0 && playerY + moveY < HEIGHT) {
-	        playerY += moveY;
-	    }
+		if (moveX != 0) {
+			int leadingEdgeX = moveX > 0 ? playerX + moveX + playerSize - 1 : playerX + moveX;
+			int targetCol = leadingEdgeX / Maze.TILE_SIZE;
+			boolean blocked = targetCol != col && maze.hasWall(row, col, moveX > 0 ? Maze.EAST : Maze.WEST);
+			if (!blocked)
+				playerX += moveX;
+		}
+
+		if (moveY != 0) {
+			int leadingEdgeY = moveY > 0 ? playerY + moveY + playerSize - 1 : playerY + moveY;
+			int targetRow = leadingEdgeY / Maze.TILE_SIZE;
+			boolean blocked = targetRow != row && maze.hasWall(row, col, moveY > 0 ? Maze.SOUTH : Maze.NORTH);
+			if (!blocked)
+				playerY += moveY;
+		}
 	}
 }
 
 public class GamePanel extends JPanel {
 	private static final int WIDTH = 960, HEIGHT = 720; // dimension of a panel
 	private final Player player = new Player();
+	private final Maze maze = new Maze();
 
 	private void initPlayerMovement() {
 		getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("pressed W"), "upPressed");
@@ -133,7 +147,7 @@ public class GamePanel extends JPanel {
 		setBackground(Color.BLACK);
 		this.initPlayerMovement();
 		Timer timer = new Timer(16, event -> {
-			player.update();
+			player.update(maze);
 			repaint();
 		});
 		timer.start();
@@ -142,6 +156,7 @@ public class GamePanel extends JPanel {
 	@Override
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
+		maze.draw(g);
 		g.setColor(Color.CYAN);
 		g.fillOval(player.playerX, player.playerY, player.playerSize, player.playerSize);
 	}
