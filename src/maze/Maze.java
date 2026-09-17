@@ -2,6 +2,7 @@ package maze;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,6 +10,8 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Random;
+
+import echo.EchoPulse;
 
 public class Maze {
 	public static final int TILE_SIZE = 40;
@@ -126,6 +129,54 @@ public class Maze {
 		return (tiles[row][col] & direction) != 0;
 	}
 
+	public boolean canOccupy(double x, double y, double size) {
+		double left = x;
+		double right = x + size;
+		double top = y;
+		double bottom = y + size;
+
+		if (left < 0 || top < 0 || right > COLS * TILE_SIZE || bottom > ROWS * TILE_SIZE) {
+			return false;
+		}
+
+		for (int row = 0; row < ROWS; row++) {
+			for (int col = 0; col < COLS; col++) {
+				double cellLeft = col * TILE_SIZE;
+				double cellRight = cellLeft + TILE_SIZE;
+				double cellTop = row * TILE_SIZE;
+				double cellBottom = cellTop + TILE_SIZE;
+
+				boolean overlapsX = right > cellLeft && left < cellRight;
+
+				boolean overlapsY = bottom > cellTop && top < cellBottom;
+
+				// Horizontal walls: north and south.
+				if (overlapsX) {
+					if (hasWall(row, col, NORTH) && top < cellTop && bottom > cellTop) {
+						return false;
+					}
+
+					if (hasWall(row, col, SOUTH) && top < cellBottom && bottom > cellBottom) {
+						return false;
+					}
+				}
+
+				// Vertical walls: west and east.
+				if (overlapsY) {
+					if (hasWall(row, col, WEST) && left < cellLeft && right > cellLeft) {
+						return false;
+					}
+
+					if (hasWall(row, col, EAST) && left < cellRight && right > cellRight) {
+						return false;
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
 	public void draw(Graphics g) {
 		g.setColor(Color.GRAY);
 		for (int row = 0; row < ROWS; row++) {
@@ -144,6 +195,46 @@ public class Maze {
 					g.drawLine(x + TILE_SIZE, y, x + TILE_SIZE, y + TILE_SIZE);
 			}
 		}
+	}
+
+	public void drawWithEcho(Graphics g, List<EchoPulse> pulses) {
+		if (pulses.isEmpty()) {
+			return;
+		}
+		Graphics2D g2 = (Graphics2D) g;
+		for (int row = 0; row < ROWS; row++) {
+			for (int col = 0; col < COLS; col++) {
+				int x = col * TILE_SIZE;
+				int y = row * TILE_SIZE;
+				int cell = tiles[row][col];
+
+				if ((cell & NORTH) != 0)
+					drawEchoedWall(g2, pulses, x, y, x + TILE_SIZE, y);
+				if ((cell & SOUTH) != 0)
+					drawEchoedWall(g2, pulses, x, y + TILE_SIZE, x + TILE_SIZE, y + TILE_SIZE);
+				if ((cell & WEST) != 0)
+					drawEchoedWall(g2, pulses, x, y, x, y + TILE_SIZE);
+				if ((cell & EAST) != 0)
+					drawEchoedWall(g2, pulses, x + TILE_SIZE, y, x + TILE_SIZE, y + TILE_SIZE);
+			}
+		}
+	}
+
+	private void drawEchoedWall(Graphics2D g2, List<EchoPulse> pulses, int x1, int y1, int x2, int y2) {
+		double midX = (x1 + x2) / 2.0;
+		double midY = (y1 + y2) / 2.0;
+
+		double intensity = 0;
+		for (EchoPulse pulse : pulses) {
+			intensity = Math.max(intensity, pulse.intensityAt(midX, midY));
+		}
+		if (intensity <= 0) {
+			return;
+		}
+
+		int alpha = (int) Math.round(intensity * 255);
+		g2.setColor(new Color(0, 255, 255, alpha));
+		g2.drawLine(x1, y1, x2, y2);
 	}
 
 }

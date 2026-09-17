@@ -5,13 +5,11 @@ import java.util.Map;
 
 class Movement {
 	private final Map<Direction, Boolean> active = new EnumMap<>(Direction.class);
-	private Position position;
 
-	Movement(Position position) {
+	Movement() {
 		for (Direction direction : Direction.values()) {
 			active.put(direction, false);
 		}
-		this.position = position;
 	}
 
 	void setActive(Direction direction, boolean isActive) {
@@ -19,20 +17,23 @@ class Movement {
 	}
 
 	int[] computeDelta(int speed) {
-		int moveX = 0, moveY = 0;
-		if (active.get(Direction.UP) && (position.getY() - speed >= 0))
+		int moveX = 0;
+		int moveY = 0;
+
+		if (active.get(Direction.UP))
 			moveY -= speed;
-		if (active.get(Direction.DOWN) && (position.getY() + speed < 700))
+		if (active.get(Direction.DOWN))
 			moveY += speed;
-		if (active.get(Direction.LEFT) && (position.getX() - speed >= 0))
+		if (active.get(Direction.LEFT))
 			moveX -= speed;
-		if (active.get(Direction.RIGHT) && (position.getX() + speed < 960))
+		if (active.get(Direction.RIGHT))
 			moveX += speed;
 
 		if (moveX != 0 && moveY != 0) {
-			moveX = (int) Math.round(moveX * 0.7071);
-			moveY = (int) Math.round(moveY * 0.7071);
+			moveX = (int) Math.round(moveX / Math.sqrt(2));
+			moveY = (int) Math.round(moveY / Math.sqrt(2));
 		}
+
 		return new int[] { moveX, moveY };
 	}
 }
